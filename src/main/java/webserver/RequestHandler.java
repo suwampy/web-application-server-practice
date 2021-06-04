@@ -49,7 +49,7 @@ public class RequestHandler extends Thread {
 
             // HTTP 요청 정보 전체를 출력한다.
             while(!"".equals(line)) {
-                log.info(line);
+                log.info("HTTP request info : {}",line);
                 line = br.readLine();
             };
 

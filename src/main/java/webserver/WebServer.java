@@ -29,8 +29,9 @@ public class WebServer {
                 // ServerSokect에 사용자 요청이 발생하는 순간 클라이언트와 연결을 담당하는 Socket을
                 // RequestHandler에 전달하면서새로운 스레드를 실행하는 방식으로
                 // 멀티 스레드 프로그래밍을 지원
+                // (RequestHandler 클래스는 Thread를 상속받음)
                 RequestHandler requestHandler = new RequestHandler(connection);
-                requestHandler.start();
+                requestHandler.start(); //Thread의 start 메소드 실행
             }
         }
     }
