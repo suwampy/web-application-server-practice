@@ -8,7 +8,7 @@ import org.slf4j.LoggerFactory;
 
 public class WebServer {
     private static final Logger log = LoggerFactory.getLogger(WebServer.class);
-    private static final int DEFAULT_PORT = 8080;
+    private static final int DEFAULT_PORT = 8800;
 
     public static void main(String args[]) throws Exception {
         int port = 0;
@@ -26,6 +26,9 @@ public class WebServer {
             // 클라이언트가 연결될때까지 대기한다.
             Socket connection;
             while ((connection = listenSocket.accept()) != null) {
+                // ServerSokect에 사용자 요청이 발생하는 순간 클라이언트와 연결을 담당하는 Socket을
+                // RequestHandler에 전달하면서새로운 스레드를 실행하는 방식으로
+                // 멀티 스레드 프로그래밍을 지원
                 RequestHandler requestHandler = new RequestHandler(connection);
                 requestHandler.start();
             }
