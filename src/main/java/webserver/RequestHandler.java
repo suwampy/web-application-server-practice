@@ -11,8 +11,8 @@ import model.User;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static util.HttpRequestUtils.getUrl;
-import static util.HttpRequestUtils.parseQueryString;
+import static util.HttpRequestUtils.*;
+import static util.IOUtils.readData;
 
 public class RequestHandler extends Thread {
     private static final Logger log = LoggerFactory.getLogger(RequestHandler.class);
@@ -49,13 +49,19 @@ public class RequestHandler extends Thread {
             String url = getUrl(line);
 
             // http request 정보를 log로 찍기
-            httpRequestInfo(line, br);
+            // getHttpHeader(br);
 
 
             /**
-             * 96p 요구사항 2 - GET 방식으로 회원가입 하기
+             * 3.4.3.2 요구사항 2 - GET 방식으로 회원가입 하기
              * */
-            User user = createUserGet(url);
+            // User user = createUserGet(url);
+
+            /**
+             * 3.4.3.3 요구사항 3 - POST 방식으로 회원가입하기
+             * */
+            User user = createUserPost(br);
+
 
             // 요청 URL에 해당하는 파일을 webapp 디렉토리에서 읽어 전달하면 된다
             DataOutputStream dos = new DataOutputStream(out);
@@ -70,24 +76,7 @@ public class RequestHandler extends Thread {
     }
 
 
-    /**
-     * httpRequestsInfo
-     * http 요청 정보를 추출하는 메소드
-     * */
-   public void httpRequestInfo(String line, BufferedReader br) throws IOException {
-        // line이 null 값인 경우에 대한 예외 처리도 해야한다.
-        // 그렇지 않을 경우 무한 루프에 빠진당
-        if (line == null) {
-            return;
-        }
 
-        // HTTP 요청 정보 전체를 출력한다.
-        while(!"".equals(line)) {
-            log.info("HTTP request info : {}",line);
-            line = br.readLine();
-        };
-
-    }
 
     /**
      * 요구사항 2 - GET 방식으로 회원가입하기
@@ -97,20 +86,21 @@ public class RequestHandler extends Thread {
         int index = url.indexOf("?");
         String requestPath = url.substring(0,index);
         String params = url.substring(index+1);
-        Map<String, String> temp =  parseQueryString(params);
 
-        String userId = temp.get("userId");
-        String password = temp.get("password");
-        String name = URLDecoder.decode(temp.get("name"),"UTF-8");
-        String email = null;
-        if (temp.get("email") != null){
-            email = temp.get("email");
-        }
-
-        User user = new User(userId,password,name,email);
-
+        User user = makeUser(params);
         return user;
     }
+
+
+    /**
+     * 요구사항 3 - POST 방식으로 회원가입 하기
+     * */
+    public User createUserPost(BufferedReader br) throws IOException {
+        String params = getHttpContents(br);
+        User user = makeUser(params);
+        return user;
+    }
+
 
 
     private void response200Header(DataOutputStream dos, int lengthOfBodyContent) {
