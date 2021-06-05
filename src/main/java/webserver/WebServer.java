@@ -24,6 +24,7 @@ public class WebServer {
             log.info("Web Application Server started {} port.", port);
 
             // 클라이언트가 연결될때까지 대기한다.
+
             Socket connection;
             while ((connection = listenSocket.accept()) != null) {
                 // ServerSokect에 사용자 요청이 발생하는 순간 클라이언트와 연결을 담당하는 Socket을

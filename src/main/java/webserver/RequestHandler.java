@@ -2,10 +2,17 @@ package webserver;
 
 import java.io.*;
 import java.net.Socket;
+import java.net.URLDecoder;
+import java.net.URLEncoder;
 import java.nio.file.Files;
+import java.util.Map;
 
+import model.User;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static util.HttpRequestUtils.getUrl;
+import static util.HttpRequestUtils.parseQueryString;
 
 public class RequestHandler extends Thread {
     private static final Logger log = LoggerFactory.getLogger(RequestHandler.class);
@@ -41,17 +48,14 @@ public class RequestHandler extends Thread {
             // HTTP 요청 정보의 첫 번째 라인에서 요청 URL을 추출한다.
             String url = getUrl(line);
 
-            // line이 null 값인 경우에 대한 예외 처리도 해야한다.
-            // 그렇지 않을 경우 무한 루프에 빠진당
-            if (line == null) {
-                return;
-            }
+            // http request 정보를 log로 찍기
+            httpRequestInfo(line, br);
 
-            // HTTP 요청 정보 전체를 출력한다.
-            while(!"".equals(line)) {
-                log.info("HTTP request info : {}",line);
-                line = br.readLine();
-            };
+
+            /**
+             * 96p 요구사항 2 - GET 방식으로 회원가입 하기
+             * */
+            User user = createUserGet(url);
 
             // 요청 URL에 해당하는 파일을 webapp 디렉토리에서 읽어 전달하면 된다
             DataOutputStream dos = new DataOutputStream(out);
@@ -65,10 +69,49 @@ public class RequestHandler extends Thread {
         }
     }
 
-    private String getUrl(String line) {
-        String url = line.split(" ")[1];
-        return url;
+
+    /**
+     * httpRequestsInfo
+     * http 요청 정보를 추출하는 메소드
+     * */
+   public void httpRequestInfo(String line, BufferedReader br) throws IOException {
+        // line이 null 값인 경우에 대한 예외 처리도 해야한다.
+        // 그렇지 않을 경우 무한 루프에 빠진당
+        if (line == null) {
+            return;
+        }
+
+        // HTTP 요청 정보 전체를 출력한다.
+        while(!"".equals(line)) {
+            log.info("HTTP request info : {}",line);
+            line = br.readLine();
+        };
+
     }
+
+    /**
+     * 요구사항 2 - GET 방식으로 회원가입하기
+     * */
+    public User createUserGet(String url) throws UnsupportedEncodingException {
+        // todos : 리팩토링 필요할듯...?
+        int index = url.indexOf("?");
+        String requestPath = url.substring(0,index);
+        String params = url.substring(index+1);
+        Map<String, String> temp =  parseQueryString(params);
+
+        String userId = temp.get("userId");
+        String password = temp.get("password");
+        String name = URLDecoder.decode(temp.get("name"),"UTF-8");
+        String email = null;
+        if (temp.get("email") != null){
+            email = temp.get("email");
+        }
+
+        User user = new User(userId,password,name,email);
+
+        return user;
+    }
+
 
     private void response200Header(DataOutputStream dos, int lengthOfBodyContent) {
         try {
