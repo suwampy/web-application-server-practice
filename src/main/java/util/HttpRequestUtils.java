@@ -140,6 +140,7 @@ public class HttpRequestUtils {
 
         User user = new User(userId,password,name,email);
 
+        log.debug("makeUser : {}", user);
         return user;
     }
 

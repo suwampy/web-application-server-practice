@@ -60,13 +60,19 @@ public class RequestHandler extends Thread {
             /**
              * 3.4.3.3 요구사항 3 - POST 방식으로 회원가입하기
              * */
-            User user = createUserPost(br);
+            if (url.contains("/user/create")){
+                User user = createUserPost(br);
+                /**
+                 * 3.4.3.4 요구사항 4 - 302 status code 적용
+                 * */
+                response302Header(new DataOutputStream(out));
+            }
 
 
             // 요청 URL에 해당하는 파일을 webapp 디렉토리에서 읽어 전달하면 된다
             DataOutputStream dos = new DataOutputStream(out);
             byte[] body = Files.readAllBytes(new File("./webapp" + url).toPath());
-            response200Header(dos, body.length);
+            response200Header(dos,body.length);
             responseBody(dos, body);
 
 
@@ -109,6 +115,26 @@ public class RequestHandler extends Thread {
             dos.writeBytes("Content-Type: text/html;charset=utf-8\r\n");
             dos.writeBytes("Content-Length: " + lengthOfBodyContent + "\r\n");
             dos.writeBytes("\r\n");
+        } catch (IOException e) {
+            log.error(e.getMessage());
+        }
+    }
+
+    /**
+     * 요구사항 4 - 302 status code 적용
+     *
+     * 하이퍼텍스트 전송 프로토콜 (HTTP)의 302 Found 리다이렉트 상태 응답 코드는
+     * 클라이언트가 요청한 리소스가 Location (en-US) 헤더에 주어진 URL에 일시적으로 이동되었음을 가리킨다.
+     * 브라우저는 사용자를 이 URL의 페이지로 리다이렉트시키지만
+     * 검색 엔진은 그 리소스가 일시적으로 이동되었다고 해서 그에 대한 링크를 갱신하지는 않는다
+     * ('SEO 관점' 에서 말하자면, 링크 주스(Link Juice)가 새로운 URL로 보내지지는 않는다).
+     * */
+    private void response302Header(DataOutputStream dos) {
+        try {
+            dos.writeBytes("HTTP/1.1 302 Found \r\n");
+            dos.writeBytes("Location: /index.html");
+            dos.writeBytes("\r\n");
+            dos.flush();
         } catch (IOException e) {
             log.error(e.getMessage());
         }
