@@ -5,11 +5,13 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
 
 import com.google.common.base.Strings;
 import com.google.common.collect.Maps;
+import db.DataBase;
 import model.User;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -93,37 +95,19 @@ public class HttpRequestUtils {
      * getContentLength
      * http 요청 정보의 header 부분에서 Content-Length 를 추출하는 메소드
      * */
-    public static int getContentLength(BufferedReader br) throws IOException {
+    public static Map getHttpRequestHeader(BufferedReader br) throws IOException {
         int contentLength = 0;
         String line = br.readLine();
 
+        Map <String, String> httpRequestHeader = new HashMap<>();
+
         while(!"".equals(line)) {
             String getKey = parseHeader(line).getKey();
-            if (getKey.equals("Content-Length")){
-                log.debug("Content-Length : {}", parseHeader(line).getValue());
-                contentLength = parseInt(parseHeader(line).getValue());
-            }
-
+            httpRequestHeader.put( parseHeader(line).getKey(), parseHeader(line).getValue());
             line = br.readLine();
         }
-        return contentLength;
-    }
 
-    /**
-     * getHttpContents
-     * http 요청 정보의 contents 본문을 추출하는 메소드
-     * */
-    public static String getHttpContents(BufferedReader br) throws IOException {
-        // POST로 데이터를 전달할 경우 전달하는 데이터는 HTTP 본문에 담긴다.
-        // HTTP 본문은 HTTP 헤더 이후 빈 공백을 가지는 한 줄(line) 다음부터 시작한다.
-        // HTTP 본문에 전달되는 데이터는 GET 방식으로 데이터를 전달할 때의 이름= 값과 같다.
-        int contentLength = getContentLength(br);
-
-        // BufferedREader에서 본문 데이터는 util.IOUtils 클래스의 readData() 메소드를 활용한다.
-        // 본문의 길이는 HTTP 헤더의 Content-Length의 값이다.
-        String readData = readData(br, contentLength);
-
-        return readData;
+        return httpRequestHeader;
     }
 
     /**
@@ -144,6 +128,35 @@ public class HttpRequestUtils {
         return user;
     }
 
+
+    /**
+     * getUser
+     * id와 pwd를 받아와 저장된 유저 정보를 받아오는 메소드
+     * */
+    public static User getUser(BufferedReader br, int contentLength) throws IOException {
+        String body = IOUtils.readData(br, contentLength);
+        Map<String, String> params = HttpRequestUtils.parseQueryString(body);
+        User u = DataBase.findUserById(params.get("userId"));
+        return DataBase.findUserById(params.get("userId"));
+    }
+
+    public static int getContentLength(String line) {
+        String[] headerTokens = line.split(":");
+        return Integer.parseInt(headerTokens[1].trim());
+    }
+
+    // 로그인 확인하기
+    public static boolean isLogin(String line) {
+        String[] headerTokens = line.split(":");
+        Map<String, String> cookies = HttpRequestUtils.parseCookies(headerTokens[1].trim());
+        String value = cookies.get("logined");
+
+        if (value == null) {
+            return false;
+        }
+
+        return Boolean.parseBoolean(value);
+    }
 
     // getRequestURL
     public static String getRequestURL(String url) {
