@@ -58,7 +58,7 @@ public class RequestHandler extends Thread {
             String defaultUrl = "/index.html"; // 리다이렉션할 기본 url
             boolean logined = false; // 로그인 여부.. .처음에 http 헤더의 cookie 값을 읽어와서 판별
             int contentLength = 0; //콘텐츠길이
-            boolean css = false; //css
+            boolean cssFlag = false; //css
 
             while (!"".equals(line)) {
                 line = br.readLine();
@@ -133,7 +133,7 @@ public class RequestHandler extends Thread {
                     sb.append("</table>");
 
                     byte[] body = sb.toString().getBytes(StandardCharsets.UTF_8);
-                    response200Header(dos, body.length, css);
+                    response200Header(dos, body.length, cssFlag);
                     responseBody(dos, body);
 
                 } else {
@@ -152,10 +152,10 @@ public class RequestHandler extends Thread {
                  * CSS인 경우 응답헤더의 Content-Type을 text/css로 전송한다다
                  * * */
 
-                css = true;
-                response200(out, url, css);
+                cssFlag = true;
+                response200(out, url, cssFlag);
             } else {
-                response200(out, url, css);
+                response200(out, url, cssFlag);
             }
 
         } catch (IOException e) {
@@ -196,19 +196,19 @@ public class RequestHandler extends Thread {
 
     // =============================== response ===============================
     // 200 응답
-    private void response200(OutputStream out, String url, Boolean css) throws IOException {
+    private void response200(OutputStream out, String url, Boolean cssFlag) throws IOException {
         // 요청 URL에 해당하는 파일을 webapp 디렉토리에서 읽어 전달하면 된다
         DataOutputStream dos = new DataOutputStream(out);
         byte[] body = Files.readAllBytes(new File("./webapp" + url).toPath());
-        response200Header(dos, body.length, css);
+        response200Header(dos, body.length, cssFlag);
         responseBody(dos, body);
 
     }
 
-    private void response200Header(DataOutputStream dos, int lengthOfBodyContent, Boolean css) {
+    private void response200Header(DataOutputStream dos, int lengthOfBodyContent, Boolean cssFlag) {
         try {
             dos.writeBytes("HTTP/1.1 200 OK \r\n");
-            if (css) {
+            if (cssFlag) {
                 dos.writeBytes("Content-Type: text/css\r\n");
             } else {
                 dos.writeBytes("Content-Type: text/html;charset=utf-8\r\n");
