@@ -2,21 +2,17 @@ package webserver;
 
 import java.io.*;
 import java.net.Socket;
-import java.net.URLDecoder;
-import java.net.URLEncoder;
+
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.Collection;
-import java.util.Map;
+
 
 import db.DataBase;
 import model.User;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import util.HttpRequestUtils;
-import util.IOUtils;
 
-import static java.lang.Integer.parseInt;
 import static util.HttpRequestUtils.*;
 import static util.IOUtils.readData;
 
@@ -39,8 +35,7 @@ public class RequestHandler extends Thread {
              OutputStream out = connection.getOutputStream()) {
             // TODO 사용자 요청에 대한 처리는 이 곳에 구현하면 된다.
             /**
-             * 2021 - 06 - 04
-             * 96p 요구사항 1 - index.html 응답하기
+             * 요구사항 1 - index.html 응답하기
              * http://localhost:8080/index.html로 접속했을 때
              * webapp 디렉토리의 index.html 파일을 읽어 클라이언트에 응답한다.
              * */
@@ -63,6 +58,7 @@ public class RequestHandler extends Thread {
             String defaultUrl = "/index.html"; // 리다이렉션할 기본 url
             boolean logined = false; // 로그인 여부.. .처음에 http 헤더의 cookie 값을 읽어와서 판별
             int contentLength = 0; //콘텐츠길이
+            boolean css = false; //css
 
             while (!"".equals(line)) {
                 line = br.readLine();
@@ -78,89 +74,94 @@ public class RequestHandler extends Thread {
 
             DataOutputStream dos = new DataOutputStream(out);
 
-            switch (url) {
-                case "/user/create":
-                    /**
-                     * 3.4.3.2 요구사항 2 - GET 방식으로 회원가입 하기
-                     * */
-                    // User user = createUserGet(url);
+            if (url.equals("/user/create")) {
+                /**
+                 * 3.4.3.2 요구사항 2 - GET 방식으로 회원가입 하기
+                 * */
+                // User user = createUserGet(url);
 
-                    /**
-                     * 3.4.3.3 요구사항 3 - POST 방식으로 회원가입하기
-                     * */
-                    User postUser = createUserPost(br,contentLength);
+                /**
+                 * 3.4.3.3 요구사항 3 - POST 방식으로 회원가입하기
+                 * */
+                User postUser = createUserPost(br, contentLength);
 
-                    /**
-                     * 3.4.3.5 요구사항 5 - 로그인하기위해 회원가입할 때 생성한 User 깩체를
-                     * DataBase.addUser() 메소드를 활용해 저장
-                     * */
-                    DataBase.addUser(postUser);
-                    /**
-                     * 3.4.3.4 요구사항 4 - 302 status code 적용
-                     * */
-                    response302Header(dos,defaultUrl);
-                    break;
+                /**
+                 * 3.4.3.5 요구사항 5 - 로그인하기위해 회원가입할 때 생성한 User 깩체를
+                 * DataBase.addUser() 메소드를 활용해 저장
+                 * */
+                DataBase.addUser(postUser);
+                /**
+                 * 3.4.3.4 요구사항 4 - 302 status code 적용
+                 * */
+                response302Header(dos, defaultUrl);
 
-                case "/user/login":
-                    /**
-                     * 3.4.3.5 요구사항 5 - 로그인하기
-                     * */
-                    // 아이디와 비밀번호가 같은지를 확인해 로그인 성공여부 체크
-                    User getUser = getUser(br,contentLength);
+            }else if (url.equals("/user/login")) {
+                /**
+                 * 3.4.3.5 요구사항 5 - 로그인하기
+                 * */
+                // 아이디와 비밀번호가 같은지를 확인해 로그인 성공여부 체크
+                User getUser = getUser(br, contentLength);
 
-                    if (getUser !=null) {
-                        setCookie = true;
-                        response302HeaderLogin(dos,setCookie,defaultUrl);
-                    }else{
-                        defaultUrl = "/user/login_failed.html";
-                        response302HeaderLogin(dos,setCookie,defaultUrl);
+                if (getUser != null) {
+                    setCookie = true;
+                    response302HeaderLogin(dos, setCookie, defaultUrl);
+                } else {
+                    defaultUrl = "/user/login_failed.html";
+                    response302HeaderLogin(dos, setCookie, defaultUrl);
+                }
+
+            }else if (url.equals("/user/list")) {
+                /**
+                 * 요구사항 6 - 사용자 목록 출력
+                 * 접근하고 있는 사용자가 '로그인' 상태일 경우 (Cookie 값이 logined = true)
+                 * /user/list로 접근했을 때 사용자 목록을 출력
+                 * 만약 로그인 하징 ㅏㄶ은 상태라면 로그인 페이지로 이동
+                 * */
+                if (logined) {
+                    log.debug("login");
+                    // 사용자 목록을 출력하는 HTML 동적으로 생성한 후 응답으로 보냄
+                    Collection<User> users = DataBase.findAll();
+                    StringBuilder sb = new StringBuilder();
+                    sb.append("<table border ='1'>");
+                    for (User u : users) {
+                        sb.append("<tr>");
+                        sb.append("<td>" + u.getUserId() + "</td>");
+                        sb.append("<td>" + u.getName() + "</td>");
+                        sb.append("<td>" + u.getEmail() + "</td>");
+                        sb.append("</tr>");
                     }
-                    break;
+                    sb.append("</table>");
 
-                case "/user/list":
-                    /**
-                     * 요구사항 6 - 사용자 목록 출력
-                     * 접근하고 있는 사용자가 '로그인' 상태일 경우 (Cookie 값이 logined = true)
-                     * /user/list로 접근했을 때 사용자 목록을 출력
-                     * 만약 로그인 하징 ㅏㄶ은 상태라면 로그인 페이지로 이동
-                     * */
-                    if (logined){
-                        log.debug("login");
-                        // 사용자 목록을 출력하는 HTML 동적으로 생성한 후 응답으로 보냄
-                        Collection<User> users = DataBase.findAll();
-                        StringBuilder sb = new StringBuilder();
-                        sb.append("<table border ='1'>");
-                        for (User u : users) {
-                            sb.append("<tr>");
-                            sb.append("<td>"+u.getUserId()+"</td>");
-                            sb.append("<td>"+u.getName()+"</td>");
-                            sb.append("<td>"+u.getEmail()+"</td>");
-                            sb.append("</tr>");
-                        }
-                        sb.append("</table>");
+                    byte[] body = sb.toString().getBytes(StandardCharsets.UTF_8);
+                    response200Header(dos, body.length, css);
+                    responseBody(dos, body);
 
-                        byte[] body = sb.toString().getBytes(StandardCharsets.UTF_8);
-                        response200Header(dos, body.length);
-                        responseBody(dos, body);
+                } else {
+                    log.debug("not login");
+                    defaultUrl = "/user/login.html";
+                    response302HeaderLogin(dos, setCookie, defaultUrl);
+                }
 
-                    }else{
-                        log.debug("not login");
-                        defaultUrl = "/user/login.html";
-                        response302HeaderLogin(dos,setCookie,defaultUrl);
-                    }
-                    break;
-                default:
-                    response200(out, url);
-                    break;
+            }else if (url.contains(".css")) {
+                log.debug("css setting");
+                /**
+                 * 요구사항 7 - css
+                 * 응답 헤더의 Content-Type을 text/html로 보내면
+                 * 브라우저는 HTML 파일로 인식하기 때문에 CSS가 정상적으로 동작하지 않는다
+                 *
+                 * CSS인 경우 응답헤더의 Content-Type을 text/css로 전송한다다
+                 * * */
+
+                css = true;
+                response200(out, url, css);
+            } else {
+                response200(out, url, css);
             }
-
-
 
         } catch (IOException e) {
             log.error(e.getMessage());
         }
     }
-
 
 
     /**
@@ -195,19 +196,23 @@ public class RequestHandler extends Thread {
 
     // =============================== response ===============================
     // 200 응답
-    private void response200 (OutputStream out, String url) throws IOException {
+    private void response200(OutputStream out, String url, Boolean css) throws IOException {
         // 요청 URL에 해당하는 파일을 webapp 디렉토리에서 읽어 전달하면 된다
         DataOutputStream dos = new DataOutputStream(out);
         byte[] body = Files.readAllBytes(new File("./webapp" + url).toPath());
-        response200Header(dos, body.length);
+        response200Header(dos, body.length, css);
         responseBody(dos, body);
 
     }
 
-    private void response200Header(DataOutputStream dos, int lengthOfBodyContent) {
+    private void response200Header(DataOutputStream dos, int lengthOfBodyContent, Boolean css) {
         try {
             dos.writeBytes("HTTP/1.1 200 OK \r\n");
-            dos.writeBytes("Content-Type: text/html;charset=utf-8\r\n");
+            if (css) {
+                dos.writeBytes("Content-Type: text/css\r\n");
+            } else {
+                dos.writeBytes("Content-Type: text/html;charset=utf-8\r\n");
+            }
             dos.writeBytes("Content-Length: " + lengthOfBodyContent + "\r\n");
             dos.writeBytes("\r\n");
         } catch (IOException e) {
@@ -224,10 +229,10 @@ public class RequestHandler extends Thread {
      * 검색 엔진은 그 리소스가 일시적으로 이동되었다고 해서 그에 대한 링크를 갱신하지는 않는다
      * ('SEO 관점' 에서 말하자면, 링크 주스(Link Juice)가 새로운 URL로 보내지지는 않는다).
      */
-    private void response302Header(DataOutputStream dos,String defaultUrl) {
+    private void response302Header(DataOutputStream dos, String defaultUrl) {
         try {
             dos.writeBytes("HTTP/1.1 302 Found \r\n");
-            dos.writeBytes("Location: "+defaultUrl+" \r\n");
+            dos.writeBytes("Location: " + defaultUrl + " \r\n");
             dos.writeBytes("\r\n");
             dos.flush();
         } catch (IOException e) {
@@ -235,23 +240,26 @@ public class RequestHandler extends Thread {
         }
     }
 
-    private void response302HeaderLogin(DataOutputStream dos, boolean setCookie,String defaultUrl) {
+    /**
+     * 요구사항 5 - 로그인하기
+     * 로그인 성공시 HTTP 응답 헤더(response header)에
+     * Set-Cookie를 추가해 로그인 성공 여부를 전달한다.
+     *
+     * 200에다가하랬는데 어케하지....ㅋㅋ
+     * */
+    private void response302HeaderLogin(DataOutputStream dos, boolean setCookie, String defaultUrl) {
         try {
             dos.writeBytes("HTTP/1.1 302 Found \r\n");
-            dos.writeBytes("Location: "+defaultUrl+" \r\n");
-            /**
-             * 요구사항 5 - 로그인하기
-             * 로그인 성공시 HTTP 응답 헤더(response header)에
-             * Set-Cookie를 추가해 로그인 성공 여부를 전달한다.
-             *
-             * 200에다가하랬는데 어케하지....ㅜㅜㅜ             */
-            if (setCookie){
-                log.info("set cookie true");
+            dos.writeBytes("Location: " + defaultUrl + " \r\n");
+
+            if (setCookie) {
+                log.debug("set cookie true");
                 dos.writeBytes("Set-Cookie: logined=true \r\n");
-            } else{
-                log.info("set cookie false");
+            } else {
+                log.debug("set cookie false");
                 dos.writeBytes("Set-Cookie: logined=false \r\n");
             }
+
             dos.writeBytes("\r\n");
             dos.flush();
         } catch (IOException e) {

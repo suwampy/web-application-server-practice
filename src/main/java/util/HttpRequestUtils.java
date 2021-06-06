@@ -5,7 +5,7 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.util.Arrays;
-import java.util.HashMap;
+
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -15,10 +15,6 @@ import db.DataBase;
 import model.User;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import webserver.RequestHandler;
-
-import static java.lang.Integer.parseInt;
-import static util.IOUtils.readData;
 
 public class HttpRequestUtils {
     private static final Logger log = LoggerFactory.getLogger(HttpRequestUtils.class);
@@ -91,24 +87,6 @@ public class HttpRequestUtils {
 
     }
 
-    /**
-     * getContentLength
-     * http 요청 정보의 header 부분에서 Content-Length 를 추출하는 메소드
-     * */
-    public static Map getHttpRequestHeader(BufferedReader br) throws IOException {
-        int contentLength = 0;
-        String line = br.readLine();
-
-        Map <String, String> httpRequestHeader = new HashMap<>();
-
-        while(!"".equals(line)) {
-            String getKey = parseHeader(line).getKey();
-            httpRequestHeader.put( parseHeader(line).getKey(), parseHeader(line).getValue());
-            line = br.readLine();
-        }
-
-        return httpRequestHeader;
-    }
 
     /**
      * makeUser
@@ -139,6 +117,7 @@ public class HttpRequestUtils {
         User u = DataBase.findUserById(params.get("userId"));
         return DataBase.findUserById(params.get("userId"));
     }
+
 
     public static int getContentLength(String line) {
         String[] headerTokens = line.split(":");
