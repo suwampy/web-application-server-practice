@@ -4,7 +4,9 @@ import java.io.*;
 import java.net.Socket;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.util.Collection;
 import java.util.Map;
 
 import db.DataBase;
@@ -111,6 +113,39 @@ public class RequestHandler extends Thread {
                         response302HeaderLogin(dos,setCookie,defaultUrl);
                     }else{
                         defaultUrl = "/user/login_failed.html";
+                        response302HeaderLogin(dos,setCookie,defaultUrl);
+                    }
+                    break;
+
+                case "/user/list":
+                    /**
+                     * 요구사항 6 - 사용자 목록 출력
+                     * 접근하고 있는 사용자가 '로그인' 상태일 경우 (Cookie 값이 logined = true)
+                     * /user/list로 접근했을 때 사용자 목록을 출력
+                     * 만약 로그인 하징 ㅏㄶ은 상태라면 로그인 페이지로 이동
+                     * */
+                    if (logined){
+                        log.debug("login");
+                        // 사용자 목록을 출력하는 HTML 동적으로 생성한 후 응답으로 보냄
+                        Collection<User> users = DataBase.findAll();
+                        StringBuilder sb = new StringBuilder();
+                        sb.append("<table border ='1'>");
+                        for (User u : users) {
+                            sb.append("<tr>");
+                            sb.append("<td>"+u.getUserId()+"</td>");
+                            sb.append("<td>"+u.getName()+"</td>");
+                            sb.append("<td>"+u.getEmail()+"</td>");
+                            sb.append("</tr>");
+                        }
+                        sb.append("</table>");
+
+                        byte[] body = sb.toString().getBytes(StandardCharsets.UTF_8);
+                        response200Header(dos, body.length);
+                        responseBody(dos, body);
+
+                    }else{
+                        log.debug("not login");
+                        defaultUrl = "/user/login.html";
                         response302HeaderLogin(dos,setCookie,defaultUrl);
                     }
                     break;
@@ -223,6 +258,7 @@ public class RequestHandler extends Thread {
             log.error(e.getMessage());
         }
     }
+
 
     private void responseBody(DataOutputStream dos, byte[] body) {
         try {

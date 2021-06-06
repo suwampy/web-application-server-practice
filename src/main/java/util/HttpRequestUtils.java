@@ -145,7 +145,9 @@ public class HttpRequestUtils {
         return Integer.parseInt(headerTokens[1].trim());
     }
 
-    // 로그인 확인하기
+   /**
+    * 요구사항 6 - 사용자 목록 출력 / 로그인 확인하기
+    * */
     public static boolean isLogin(String line) {
         String[] headerTokens = line.split(":");
         Map<String, String> cookies = HttpRequestUtils.parseCookies(headerTokens[1].trim());
