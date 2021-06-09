@@ -6,6 +6,7 @@ import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.util.Arrays;
 
+import java.util.Collection;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -66,27 +67,6 @@ public class HttpRequestUtils {
         return url;
     }
 
-    /**
-     * getHttpHeader
-     * http 요청 정보의 header 부분을 추출하는 메소드
-     * */
-    public static void getHttpHeader(BufferedReader br) throws IOException {
-        String line = br.readLine();
-
-        // line이 null 값인 경우에 대한 예외 처리도 해야한다.
-        // 그렇지 않을 경우 무한 루프에 빠진당
-        if (line == null) {
-            return;
-        }
-
-        // HTTP 요청 정보 Header 부분을 출력한다.
-        while(!"".equals(line)) {
-            log.debug("HTTP request Header info : {}",line);
-            line = br.readLine();
-        };
-
-    }
-
 
     /**
      * makeUser
@@ -116,6 +96,27 @@ public class HttpRequestUtils {
         Map<String, String> params = HttpRequestUtils.parseQueryString(body);
         User u = DataBase.findUserById(params.get("userId"));
         return DataBase.findUserById(params.get("userId"));
+    }
+
+
+    /**
+     * makeUserList
+     * 사용자 목록을 출력하는 HTML 동적으로 생성
+     * */
+    public static StringBuilder makeUserList(){
+        Collection<User> users = DataBase.findAll();
+        StringBuilder sb = new StringBuilder();
+        sb.append("<table border ='1'>");
+        for (User u : users) {
+            sb.append("<tr>");
+            sb.append("<td>" + u.getUserId() + "</td>");
+            sb.append("<td>" + u.getName() + "</td>");
+            sb.append("<td>" + u.getEmail() + "</td>");
+            sb.append("</tr>");
+        }
+        sb.append("</table>");
+
+        return sb;
     }
 
 

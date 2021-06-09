@@ -48,9 +48,6 @@ public class RequestHandler extends Thread {
             String line = br.readLine();
             String url = getUrl(line);
 
-            // http request 정보를 log로 찍기
-            // getHttpHeader(br);
-
             /**
              * init ... 초기 생성값들인데 따로 뺄 수 있는방법업음??
              * */
@@ -60,8 +57,17 @@ public class RequestHandler extends Thread {
             int contentLength = 0; //콘텐츠길이
             boolean cssFlag = false; //css
 
+            // line이 null 값인 경우에 대한 예외 처리도 해야한다.
+            // 그렇지 않을 경우 무한 루프에 빠진당
+            if (line == null) {
+                return;
+            }
+
             while (!"".equals(line)) {
                 line = br.readLine();
+
+                // HTTP 요청 정보 Header 부분을 출력한다.
+                log.debug("HTTP request Header info : {}",line);
 
                 if (line.contains("Cookie")) {
                     logined = isLogin(line);
@@ -75,30 +81,24 @@ public class RequestHandler extends Thread {
             DataOutputStream dos = new DataOutputStream(out);
 
             if (url.equals("/user/create")) {
-                /**
-                 * 3.4.3.2 요구사항 2 - GET 방식으로 회원가입 하기
-                 * */
+
+                // 요구사항 2 - GET 방식으로 회원가입 하기
                 // User user = createUserGet(url);
 
-                /**
-                 * 3.4.3.3 요구사항 3 - POST 방식으로 회원가입하기
-                 * */
+                // 요구사항 3 - POST 방식으로 회원가입하기
                 User postUser = createUserPost(br, contentLength);
 
                 /**
-                 * 3.4.3.5 요구사항 5 - 로그인하기위해 회원가입할 때 생성한 User 깩체를
+                 * 요구사항 5 - 로그인하기위해 회원가입할 때 생성한 User 깩체를
                  * DataBase.addUser() 메소드를 활용해 저장
                  * */
                 DataBase.addUser(postUser);
-                /**
-                 * 3.4.3.4 요구사항 4 - 302 status code 적용
-                 * */
+
+                // 요구사항 4 - 302 status code 적용
                 response302Header(dos, defaultUrl);
 
             }else if (url.equals("/user/login")) {
-                /**
-                 * 3.4.3.5 요구사항 5 - 로그인하기
-                 * */
+                // 요구사항 5 - 로그인하기
                 // 아이디와 비밀번호가 같은지를 확인해 로그인 성공여부 체크
                 User getUser = getUser(br, contentLength);
 
@@ -120,18 +120,7 @@ public class RequestHandler extends Thread {
                 if (logined) {
                     log.debug("login");
                     // 사용자 목록을 출력하는 HTML 동적으로 생성한 후 응답으로 보냄
-                    Collection<User> users = DataBase.findAll();
-                    StringBuilder sb = new StringBuilder();
-                    sb.append("<table border ='1'>");
-                    for (User u : users) {
-                        sb.append("<tr>");
-                        sb.append("<td>" + u.getUserId() + "</td>");
-                        sb.append("<td>" + u.getName() + "</td>");
-                        sb.append("<td>" + u.getEmail() + "</td>");
-                        sb.append("</tr>");
-                    }
-                    sb.append("</table>");
-
+                    StringBuilder sb = makeUserList();
                     byte[] body = sb.toString().getBytes(StandardCharsets.UTF_8);
                     response200Header(dos, body.length, cssFlag);
                     responseBody(dos, body);
@@ -151,7 +140,6 @@ public class RequestHandler extends Thread {
                  *
                  * CSS인 경우 응답헤더의 Content-Type을 text/css로 전송한다다
                  * * */
-
                 cssFlag = true;
                 response200(out, url, cssFlag);
             } else {
