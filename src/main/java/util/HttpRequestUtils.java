@@ -19,19 +19,34 @@ import org.slf4j.LoggerFactory;
 
 public class HttpRequestUtils {
     private static final Logger log = LoggerFactory.getLogger(HttpRequestUtils.class);
+
+    public static String getUrl(String firstLine) {
+        String[] splited = firstLine.split(" ");
+        String path = splited[1];
+        log.debug("request path : {}", path);
+
+        return path;
+    }
+
+    public static String getMethod(String firstLine){
+        String[] splited = firstLine.split(" ");
+        String path = splited[0];
+        log.debug("get Method: {}", path);
+
+        return path;
+    }
     /**
-     * @param queryString은
-     *            URL에서 ? 이후에 전달되는 field1=value1&field2=value2 형식임
-     * @return
+     * queryString은 URL에서 ? 이후에 전달되는
+     * field1=value1&field2=value2 형식임
+     *
      */
     public static Map<String, String> parseQueryString(String queryString) {
         return parseValues(queryString, "&");
     }
 
     /**
-     * @param 쿠키
-     *            값은 name1=value1; name2=value2 형식임
-     * @return
+     * 쿠키값은 name1=value1; name2=value2 형식임
+     *
      */
     public static Map<String, String> parseCookies(String cookies) {
         return parseValues(cookies, ";");
@@ -60,85 +75,6 @@ public class HttpRequestUtils {
         return new Pair(tokens[0], tokens[1]);
     }
 
-    // getUrl
-    public static String getUrl(String line) {
-        String url = line.split(" ")[1];
-        log.debug("url : {}", url);
-        return url;
-    }
-
-
-    /**
-     * makeUser
-     * param 값을 받아와서 user 객체를 생성하는 메소드
-     * */
-    public static User makeUser(String params) throws UnsupportedEncodingException {
-        Map<String, String> temp =  parseQueryString(params);
-
-        String userId = temp.get("userId");
-        String password = temp.get("password");
-        String name = URLDecoder.decode(temp.get("name"),"UTF-8");
-        String email = URLDecoder.decode(temp.get("email"),"UTF-8");
-
-        User user = new User(userId,password,name,email);
-
-        log.debug("makeUser : {}", user);
-        return user;
-    }
-
-
-    /**
-     * getUser
-     * id와 pwd를 받아와 저장된 유저 정보를 받아오는 메소드
-     * */
-    public static User getUser(BufferedReader br, int contentLength) throws IOException {
-        String body = IOUtils.readData(br, contentLength);
-        Map<String, String> params = HttpRequestUtils.parseQueryString(body);
-        User u = DataBase.findUserById(params.get("userId"));
-        return DataBase.findUserById(params.get("userId"));
-    }
-
-
-    /**
-     * makeUserList
-     * 사용자 목록을 출력하는 HTML 동적으로 생성
-     * */
-    public static StringBuilder makeUserList(){
-        Collection<User> users = DataBase.findAll();
-        StringBuilder sb = new StringBuilder();
-        sb.append("<table border ='1'>");
-        for (User u : users) {
-            sb.append("<tr>");
-            sb.append("<td>" + u.getUserId() + "</td>");
-            sb.append("<td>" + u.getName() + "</td>");
-            sb.append("<td>" + u.getEmail() + "</td>");
-            sb.append("</tr>");
-        }
-        sb.append("</table>");
-
-        return sb;
-    }
-
-
-    public static int getContentLength(String line) {
-        String[] headerTokens = line.split(":");
-        return Integer.parseInt(headerTokens[1].trim());
-    }
-
-   /**
-    * 요구사항 6 - 사용자 목록 출력 / 로그인 확인하기
-    * */
-    public static boolean isLogin(String line) {
-        String[] headerTokens = line.split(":");
-        Map<String, String> cookies = HttpRequestUtils.parseCookies(headerTokens[1].trim());
-        String value = cookies.get("logined");
-
-        if (value == null) {
-            return false;
-        }
-
-        return Boolean.parseBoolean(value);
-    }
 
     // getRequestURL
     public static String getRequestURL(String url) {
